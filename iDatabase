@@ -1,0 +1,75 @@
+import requests
+
+API_KEY = 'pub_f28a33a70e9848758eee7556a8934d0b'
+BASE_URL = 'https://newsdata.io/api/1/news'
+
+def eh_academico(titulo, descricao, termos_academicos):
+    texto = (titulo or '') + ' ' + (descricao or '')
+    texto = texto.lower()
+    return any(termo.lower() in texto for termo in termos_academicos)
+
+def buscarArtigos(palavrasChave, termos_academicos):
+    artigosEncontrados = []
+
+    for palavra in palavrasChave:
+        for idioma in ['pt', 'en']:
+            params = {
+                'apikey': API_KEY,
+                'q': palavra,
+                'language': idioma,
+                'country': 'br',
+            }
+
+            resposta = requests.get(BASE_URL, params=params)
+            dados = resposta.json()
+
+            results = dados.get('results')
+            if isinstance(results, list):
+                for artigo in results[:5]:
+                    titulo = artigo.get('title')
+                    descricao = artigo.get('description')
+
+                    if eh_academico(titulo, descricao, termos_academicos):
+                        artigosEncontrados.append({
+                            'palavra': palavra,
+                            'titulo': titulo,
+                            'descricao': descricao,
+                            'link': artigo.get('link'),
+                            'idioma': idioma
+                        })
+
+    return artigosEncontrados
+
+def main():
+    print(" Bem-vindo ao iDatabase - Seu buscador de notícias acadêmicas!")
+
+    print("\nDigite 5 palavras-chave (pressione ENTER após cada uma):")
+    palavras = [input(f"Palavra {i+1}: ").strip() for i in range(5)]
+
+    print("\nAgora, digite os termos acadêmicos que você quer usar como filtro (ex: pesquisa, universidade, estudo).")
+    print("Separe os termos com vírgula. Se quiser usar os padrões, apenas pressione ENTER.")
+    entrada_termos = input("Termos acadêmicos: ").strip()
+
+    if entrada_termos:
+        termos_academicos = [termo.strip().lower() for termo in entrada_termos.split(",")]
+    else:
+        termos_academicos = [
+            'pesquisa', 'universidade', 'acadêmico', 'ciência', 'estudo',
+            'research', 'university', 'academic', 'science', 'study', 'paper'
+        ]
+
+    print(" Buscando artigos... Aguarde.")
+    resultados = buscarArtigos(palavras, termos_academicos)
+
+    print("=== Resultados encontrados ===")
+    if resultados:
+        for artigo in resultados:
+            print(f"\nPalavra-chave: {artigo['palavra']}")
+            print(f"Idioma: {'Português' if artigo['idioma'] == 'pt' else 'Inglês'}")
+            print(f"Título: {artigo['titulo']}")
+            print(f"Link: {artigo['link']}")
+    else:
+        print("Nenhuma notícia acadêmica encontrada com os filtros informados.")
+
+if __name__ == '__iDatabase__':
+    main()
